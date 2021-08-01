@@ -77,7 +77,7 @@ output:
   pi.pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred))) 
   dt.sum$pi.pred <- pi.pred
   dt.sum    <- dt.sum[order(pi.pred)] # sort by the claim probability
-  dt.sum
+  kable(dt.sum, digits = 3)
 ```
 
 ### total risk premium for the whole insurance portfolio
@@ -225,15 +225,14 @@ C <- 22206147 # total risk premium that the insurer should charge
 ```
 
 
-
-
 ### Risk premium comparsion
 
 ```{r message=TRUE, warning=FALSE}
 
- dt.sum[,c('veh_age','agecat',"pi.pred",
+dt.out <- dt.sum[,c('veh_age','agecat',"pi.pred",
            'Pure', 'EVPP', 'SDPP',
            'QR','QRII','PQR','EQR')]
+kable(dt.out, digits = 2)
 ```
 
 

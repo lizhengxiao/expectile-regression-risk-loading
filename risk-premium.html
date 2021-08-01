@@ -523,7 +523,7 @@ summary {
 <span id="cb1-6"><a href="#cb1-6"></a>  <span class="kw">library</span>(cplm)      <span class="co"># cpqlm</span></span>
 <span id="cb1-7"><a href="#cb1-7"></a></span>
 <span id="cb1-8"><a href="#cb1-8"></a></span>
-<span id="cb1-9"><a href="#cb1-9"></a><span class="co"># logistic link function with exposures</span></span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="co"># define the logistic link function with exposures</span></span>
 <span id="cb1-10"><a href="#cb1-10"></a>  logitexp &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">exposure =</span> <span class="dv">1</span>){</span>
 <span id="cb1-11"><a href="#cb1-11"></a>    linkfun &lt;-<span class="st"> </span><span class="cf">function</span>(mu) {            </span>
 <span id="cb1-12"><a href="#cb1-12"></a>      eta &lt;-<span class="st"> </span><span class="cf">if</span> (<span class="kw">any</span>(exposure<span class="op">-</span>mu <span class="op">&lt;=</span><span class="st"> </span><span class="dv">0</span>)) <span class="kw">log</span>((mu)<span class="op">/</span><span class="kw">abs</span>(mu<span class="op">-</span>exposure)) <span class="cf">else</span> <span class="kw">log</span>((mu)<span class="op">/</span>(exposure<span class="op">-</span>mu))</span>
@@ -571,133 +571,313 @@ summary {
 <span id="cb2-18"><a href="#cb2-18"></a>  pi.pred   &lt;-<span class="st"> </span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span>(<span class="kw">exp</span>(eta_pred)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(eta_pred))) </span>
 <span id="cb2-19"><a href="#cb2-19"></a>  dt.sum<span class="op">$</span>pi.pred &lt;-<span class="st"> </span>pi.pred</span>
 <span id="cb2-20"><a href="#cb2-20"></a>  dt.sum    &lt;-<span class="st"> </span>dt.sum[<span class="kw">order</span>(pi.pred)] <span class="co"># sort by the claim probability</span></span>
-<span id="cb2-21"><a href="#cb2-21"></a>  dt.sum</span></code></pre></div>
-<pre><code>##     veh_age agecat Ncount  exposure Npolicies   pi.pred
-##  1:       2      1   1504  697.4374      1504 0.7980748
-##  2:       1      1   1283  556.0383      1283 0.8030751
-##  3:       3      1   1643  748.3477      1643 0.8177389
-##  4:       2      2   3167 1486.9459      3167 0.8282539
-##  5:       4      1   1312  610.4504      1312 0.8313661
-##  6:       1      2   2160  937.5195      2160 0.8326635
-##  7:       2      3   3741 1770.2313      3741 0.8368123
-##  8:       1      3   2706 1194.0205      2706 0.8410444
-##  9:       2      4   3919 1880.7666      3919 0.8425408
-## 10:       3      2   3956 1820.0192      3956 0.8455478
-## 11:       1      4   2935 1258.9952      2935 0.8466515
-## 12:       3      3   4826 2294.6886      4826 0.8533969
-## 13:       4      2   3592 1647.3867      3592 0.8574583
-## 14:       3      4   4760 2314.0178      4760 0.8586416
-## 15:       4      3   4494 2150.5161      4494 0.8647989
-## 16:       4      4   4575 2162.7625      4575 0.8696980
-## 17:       2      5   2635 1296.0411      2635 0.8706807
-## 18:       2      6   1621  792.2546      1621 0.8710240
-## 19:       1      5   2042  913.0568      2042 0.8741665
-## 20:       1      6   1131  479.3210      1131 0.8745019
-## 21:       3      5   3088 1508.5832      3088 0.8842992
-## 22:       3      6   1791  856.4545      1791 0.8846112
-## 23:       4      5   2971 1453.3279      2971 0.8935975
-## 24:       4      6   2004  971.6359      2004 0.8938874
-##     veh_age agecat Ncount  exposure Npolicies   pi.pred</code></pre>
+<span id="cb2-21"><a href="#cb2-21"></a>  <span class="kw">kable</span>(dt.sum, <span class="dt">digits =</span> <span class="dv">3</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">veh_age</th>
+<th align="left">agecat</th>
+<th align="right">Ncount</th>
+<th align="right">exposure</th>
+<th align="right">Npolicies</th>
+<th align="right">pi.pred</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">1</td>
+<td align="right">1504</td>
+<td align="right">697.437</td>
+<td align="right">1504</td>
+<td align="right">0.798</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">1283</td>
+<td align="right">556.038</td>
+<td align="right">1283</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">1</td>
+<td align="right">1643</td>
+<td align="right">748.348</td>
+<td align="right">1643</td>
+<td align="right">0.818</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">2</td>
+<td align="right">3167</td>
+<td align="right">1486.946</td>
+<td align="right">3167</td>
+<td align="right">0.828</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">1</td>
+<td align="right">1312</td>
+<td align="right">610.450</td>
+<td align="right">1312</td>
+<td align="right">0.831</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">2</td>
+<td align="right">2160</td>
+<td align="right">937.520</td>
+<td align="right">2160</td>
+<td align="right">0.833</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">3</td>
+<td align="right">3741</td>
+<td align="right">1770.231</td>
+<td align="right">3741</td>
+<td align="right">0.837</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">3</td>
+<td align="right">2706</td>
+<td align="right">1194.021</td>
+<td align="right">2706</td>
+<td align="right">0.841</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">4</td>
+<td align="right">3919</td>
+<td align="right">1880.767</td>
+<td align="right">3919</td>
+<td align="right">0.843</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">2</td>
+<td align="right">3956</td>
+<td align="right">1820.019</td>
+<td align="right">3956</td>
+<td align="right">0.846</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">4</td>
+<td align="right">2935</td>
+<td align="right">1258.995</td>
+<td align="right">2935</td>
+<td align="right">0.847</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">3</td>
+<td align="right">4826</td>
+<td align="right">2294.689</td>
+<td align="right">4826</td>
+<td align="right">0.853</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">2</td>
+<td align="right">3592</td>
+<td align="right">1647.387</td>
+<td align="right">3592</td>
+<td align="right">0.857</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">4</td>
+<td align="right">4760</td>
+<td align="right">2314.018</td>
+<td align="right">4760</td>
+<td align="right">0.859</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">3</td>
+<td align="right">4494</td>
+<td align="right">2150.516</td>
+<td align="right">4494</td>
+<td align="right">0.865</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">4</td>
+<td align="right">4575</td>
+<td align="right">2162.762</td>
+<td align="right">4575</td>
+<td align="right">0.870</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">5</td>
+<td align="right">2635</td>
+<td align="right">1296.041</td>
+<td align="right">2635</td>
+<td align="right">0.871</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">6</td>
+<td align="right">1621</td>
+<td align="right">792.255</td>
+<td align="right">1621</td>
+<td align="right">0.871</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">5</td>
+<td align="right">2042</td>
+<td align="right">913.057</td>
+<td align="right">2042</td>
+<td align="right">0.874</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">6</td>
+<td align="right">1131</td>
+<td align="right">479.321</td>
+<td align="right">1131</td>
+<td align="right">0.875</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">5</td>
+<td align="right">3088</td>
+<td align="right">1508.583</td>
+<td align="right">3088</td>
+<td align="right">0.884</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">6</td>
+<td align="right">1791</td>
+<td align="right">856.454</td>
+<td align="right">1791</td>
+<td align="right">0.885</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">5</td>
+<td align="right">2971</td>
+<td align="right">1453.328</td>
+<td align="right">2971</td>
+<td align="right">0.894</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">6</td>
+<td align="right">2004</td>
+<td align="right">971.636</td>
+<td align="right">2004</td>
+<td align="right">0.894</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="total-risk-premium-for-the-whole-insurance-portfolio" class="section level3">
 <h3>total risk premium for the whole insurance portfolio</h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>C &lt;-<span class="st"> </span><span class="dv">22206147</span> <span class="co"># total risk premium that the insurer should charge</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>C &lt;-<span class="st"> </span><span class="dv">22206147</span> <span class="co"># total risk premium that the insurer should charge</span></span></code></pre></div>
 </div>
 <div id="two-part-glms-logistic-gamma-evpp-sdpp" class="section level3">
 <h3>Two-part GLMs: Logistic + gamma (EVPP + SDPP)</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a> <span class="co"># 0-1 claim or not part</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a>  m_clm     &lt;-<span class="st"> </span><span class="kw">glm</span>(clm <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">family=</span><span class="kw">binomial</span>(<span class="dt">link=</span><span class="kw">logitexp</span>(<span class="dt">exposure=</span>dt<span class="op">$</span>exposure)), <span class="dt">data=</span>dt)</span>
-<span id="cb5-3"><a href="#cb5-3"></a>  X_pred    &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt)</span>
-<span id="cb5-4"><a href="#cb5-4"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m_clm)</span>
-<span id="cb5-5"><a href="#cb5-5"></a>  eta_pred  &lt;-<span class="st"> </span>X_pred<span class="op">%*%</span>beta_pred</span>
-<span id="cb5-6"><a href="#cb5-6"></a>  pi_pred   &lt;-<span class="st"> </span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span>(<span class="kw">exp</span>(eta_pred)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(eta_pred)))<span class="co">#*dt$exposure</span></span>
-<span id="cb5-7"><a href="#cb5-7"></a></span>
-<span id="cb5-8"><a href="#cb5-8"></a>  <span class="co"># claim &gt; 0 claim amount part</span></span>
-<span id="cb5-9"><a href="#cb5-9"></a>  m.claim   &lt;-<span class="st"> </span><span class="kw">glm</span>(claimcst0 <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">family =</span> <span class="kw">Gamma</span>(<span class="dt">link=</span><span class="st">&#39;log&#39;</span>), <span class="dt">data =</span> dt0)</span>
-<span id="cb5-10"><a href="#cb5-10"></a>  X_pred    &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt)</span>
-<span id="cb5-11"><a href="#cb5-11"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m.claim)</span>
-<span id="cb5-12"><a href="#cb5-12"></a>  y_pred    &lt;-<span class="st"> </span><span class="kw">exp</span>(X_pred<span class="op">%*%</span>beta_pred)</span>
-<span id="cb5-13"><a href="#cb5-13"></a> </span>
-<span id="cb5-14"><a href="#cb5-14"></a>  <span class="co">#--------------------------------------------------------------------------</span></span>
-<span id="cb5-15"><a href="#cb5-15"></a>  <span class="co"># solve the risk loading parameter in EVPP and SDPP: alpha.ga.E and alpha.ga.sd</span></span>
-<span id="cb5-16"><a href="#cb5-16"></a>  <span class="co">#--------------------------------------------------------------------------</span></span>
-<span id="cb5-17"><a href="#cb5-17"></a>  Dis_par &lt;-<span class="st"> </span><span class="fl">3.103186</span> <span class="co"># Dispersion parameter</span></span>
-<span id="cb5-18"><a href="#cb5-18"></a>  E.ga    &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi_pred)<span class="op">*</span>y_pred</span>
-<span id="cb5-19"><a href="#cb5-19"></a>  Var.ga  &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi_pred)<span class="op">*</span>y_pred<span class="op">^</span><span class="dv">2</span><span class="op">*</span>(pi_pred <span class="op">+</span><span class="st"> </span>Dis_par)</span>
-<span id="cb5-20"><a href="#cb5-20"></a>  sd.ga   &lt;-<span class="st"> </span><span class="kw">sqrt</span>(Var.ga)</span>
-<span id="cb5-21"><a href="#cb5-21"></a>  alpha.ga.E  &lt;-<span class="st"> </span>C<span class="op">/</span><span class="kw">sum</span>(E.ga) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>            <span class="co"># risk roading parameter in EVPP</span></span>
-<span id="cb5-22"><a href="#cb5-22"></a>  alpha.ga.sd &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span><span class="kw">sum</span>(E.ga))<span class="op">/</span><span class="kw">sum</span>(sd.ga) <span class="co"># risk roading parameter in SDPP</span></span>
-<span id="cb5-23"><a href="#cb5-23"></a>  <span class="kw">c</span>(alpha.ga.E<span class="op">*</span><span class="dv">100</span>, alpha.ga.sd<span class="op">*</span><span class="dv">100</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a> <span class="co"># 0-1 claim or not part</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>  m_clm     &lt;-<span class="st"> </span><span class="kw">glm</span>(clm <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">family=</span><span class="kw">binomial</span>(<span class="dt">link=</span><span class="kw">logitexp</span>(<span class="dt">exposure=</span>dt<span class="op">$</span>exposure)), <span class="dt">data=</span>dt)</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  X_pred    &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt)</span>
+<span id="cb4-4"><a href="#cb4-4"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m_clm)</span>
+<span id="cb4-5"><a href="#cb4-5"></a>  eta_pred  &lt;-<span class="st"> </span>X_pred<span class="op">%*%</span>beta_pred</span>
+<span id="cb4-6"><a href="#cb4-6"></a>  pi_pred   &lt;-<span class="st"> </span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span>(<span class="kw">exp</span>(eta_pred)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(eta_pred)))<span class="co">#*dt$exposure</span></span>
+<span id="cb4-7"><a href="#cb4-7"></a></span>
+<span id="cb4-8"><a href="#cb4-8"></a>  <span class="co"># claim &gt; 0 claim amount part</span></span>
+<span id="cb4-9"><a href="#cb4-9"></a>  m.claim   &lt;-<span class="st"> </span><span class="kw">glm</span>(claimcst0 <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">family =</span> <span class="kw">Gamma</span>(<span class="dt">link=</span><span class="st">&#39;log&#39;</span>), <span class="dt">data =</span> dt0)</span>
+<span id="cb4-10"><a href="#cb4-10"></a>  X_pred    &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt)</span>
+<span id="cb4-11"><a href="#cb4-11"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m.claim)</span>
+<span id="cb4-12"><a href="#cb4-12"></a>  y_pred    &lt;-<span class="st"> </span><span class="kw">exp</span>(X_pred<span class="op">%*%</span>beta_pred)</span>
+<span id="cb4-13"><a href="#cb4-13"></a> </span>
+<span id="cb4-14"><a href="#cb4-14"></a>  <span class="co">#--------------------------------------------------------------------------</span></span>
+<span id="cb4-15"><a href="#cb4-15"></a>  <span class="co"># solve the risk loading parameter in EVPP and SDPP: alpha.ga.E and alpha.ga.sd</span></span>
+<span id="cb4-16"><a href="#cb4-16"></a>  <span class="co">#--------------------------------------------------------------------------</span></span>
+<span id="cb4-17"><a href="#cb4-17"></a>  Dis_par &lt;-<span class="st"> </span><span class="fl">3.103186</span> <span class="co"># Dispersion parameter</span></span>
+<span id="cb4-18"><a href="#cb4-18"></a>  E.ga    &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi_pred)<span class="op">*</span>y_pred</span>
+<span id="cb4-19"><a href="#cb4-19"></a>  Var.ga  &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi_pred)<span class="op">*</span>y_pred<span class="op">^</span><span class="dv">2</span><span class="op">*</span>(pi_pred <span class="op">+</span><span class="st"> </span>Dis_par)</span>
+<span id="cb4-20"><a href="#cb4-20"></a>  sd.ga   &lt;-<span class="st"> </span><span class="kw">sqrt</span>(Var.ga)</span>
+<span id="cb4-21"><a href="#cb4-21"></a>  alpha.ga.E  &lt;-<span class="st"> </span>C<span class="op">/</span><span class="kw">sum</span>(E.ga) <span class="op">-</span><span class="st"> </span><span class="dv">1</span>            <span class="co"># risk roading parameter in EVPP</span></span>
+<span id="cb4-22"><a href="#cb4-22"></a>  alpha.ga.sd &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span><span class="kw">sum</span>(E.ga))<span class="op">/</span><span class="kw">sum</span>(sd.ga) <span class="co"># risk roading parameter in SDPP</span></span>
+<span id="cb4-23"><a href="#cb4-23"></a>  <span class="kw">c</span>(alpha.ga.E<span class="op">*</span><span class="dv">100</span>, alpha.ga.sd<span class="op">*</span><span class="dv">100</span>)</span></code></pre></div>
 <pre><code>## [1] 11.966303  2.309759</code></pre>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>  <span class="co">#----------------------------------------------------------</span></span>
-<span id="cb7-2"><a href="#cb7-2"></a>  <span class="co"># estimation of risk premium for 24 risk classes (dt.sum)</span></span>
-<span id="cb7-3"><a href="#cb7-3"></a>  <span class="co">#----------------------------------------------------------</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a>  X1        &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt.sum)</span>
-<span id="cb7-5"><a href="#cb7-5"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m_clm)</span>
-<span id="cb7-6"><a href="#cb7-6"></a>  eta_pred  &lt;-<span class="st"> </span>X1<span class="op">%*%</span>beta_pred</span>
-<span id="cb7-7"><a href="#cb7-7"></a>  pi.pred   &lt;-<span class="st"> </span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span>(<span class="kw">exp</span>(eta_pred)<span class="op">/</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(eta_pred)))</span>
-<span id="cb7-8"><a href="#cb7-8"></a>  </span>
-<span id="cb7-9"><a href="#cb7-9"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m.claim)</span>
-<span id="cb7-10"><a href="#cb7-10"></a>  mu        &lt;-<span class="st"> </span><span class="kw">exp</span>(X1<span class="op">%*%</span>beta_pred)</span>
-<span id="cb7-11"><a href="#cb7-11"></a>  E.ga      &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi.pred)<span class="op">*</span>mu</span>
-<span id="cb7-12"><a href="#cb7-12"></a>  var.ga    &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi.pred)<span class="op">*</span>mu<span class="op">^</span><span class="dv">2</span><span class="op">*</span>(pi.pred <span class="op">+</span><span class="st"> </span>Dis_par)</span>
-<span id="cb7-13"><a href="#cb7-13"></a>  sd.ga     &lt;-<span class="st"> </span><span class="kw">sqrt</span>(var.ga)</span>
-<span id="cb7-14"><a href="#cb7-14"></a></span>
-<span id="cb7-15"><a href="#cb7-15"></a>  dt.sum<span class="op">$</span>Pure    &lt;-<span class="st"> </span>E.ga                     <span class="co"># pure premium</span></span>
-<span id="cb7-16"><a href="#cb7-16"></a>  dt.sum<span class="op">$</span>SDPP    &lt;-<span class="st"> </span>E.ga <span class="op">+</span><span class="st"> </span>alpha.ga.sd<span class="op">*</span>sd.ga <span class="co"># risk premium in EVPP</span></span>
-<span id="cb7-17"><a href="#cb7-17"></a>  dt.sum<span class="op">$</span>EVPP    &lt;-<span class="st"> </span>E.ga <span class="op">+</span><span class="st"> </span>alpha.ga.E<span class="op">*</span>E.ga   <span class="co"># risk premium in SDPP</span></span>
-<span id="cb7-18"><a href="#cb7-18"></a></span>
-<span id="cb7-19"><a href="#cb7-19"></a>  dt.sum<span class="op">$</span>loading.E  &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>EVPP <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure  <span class="co"># risk loading in EVPP</span></span>
-<span id="cb7-20"><a href="#cb7-20"></a>  dt.sum<span class="op">$</span>loading.sd &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>SDPP <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure  <span class="co"># risk loading in EVPP</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>  <span class="co">#----------------------------------------------------------</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>  <span class="co"># estimation of risk premium for 24 risk classes (dt.sum)</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a>  <span class="co">#----------------------------------------------------------</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>  X1        &lt;-<span class="st"> </span><span class="kw">model.matrix</span>( <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt.sum)</span>
+<span id="cb6-5"><a href="#cb6-5"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m_clm)</span>
+<span id="cb6-6"><a href="#cb6-6"></a>  eta_pred  &lt;-<span class="st"> </span>X1<span class="op">%*%</span>beta_pred</span>
+<span id="cb6-7"><a href="#cb6-7"></a>  pi.pred   &lt;-<span class="st"> </span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span>(<span class="kw">exp</span>(eta_pred)<span class="op">/</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(eta_pred)))</span>
+<span id="cb6-8"><a href="#cb6-8"></a>  </span>
+<span id="cb6-9"><a href="#cb6-9"></a>  beta_pred &lt;-<span class="st"> </span><span class="kw">coef</span>(m.claim)</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  mu        &lt;-<span class="st"> </span><span class="kw">exp</span>(X1<span class="op">%*%</span>beta_pred)</span>
+<span id="cb6-11"><a href="#cb6-11"></a>  E.ga      &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi.pred)<span class="op">*</span>mu</span>
+<span id="cb6-12"><a href="#cb6-12"></a>  var.ga    &lt;-<span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>pi.pred)<span class="op">*</span>mu<span class="op">^</span><span class="dv">2</span><span class="op">*</span>(pi.pred <span class="op">+</span><span class="st"> </span>Dis_par)</span>
+<span id="cb6-13"><a href="#cb6-13"></a>  sd.ga     &lt;-<span class="st"> </span><span class="kw">sqrt</span>(var.ga)</span>
+<span id="cb6-14"><a href="#cb6-14"></a></span>
+<span id="cb6-15"><a href="#cb6-15"></a>  dt.sum<span class="op">$</span>Pure    &lt;-<span class="st"> </span>E.ga                     <span class="co"># pure premium</span></span>
+<span id="cb6-16"><a href="#cb6-16"></a>  dt.sum<span class="op">$</span>SDPP    &lt;-<span class="st"> </span>E.ga <span class="op">+</span><span class="st"> </span>alpha.ga.sd<span class="op">*</span>sd.ga <span class="co"># risk premium in EVPP</span></span>
+<span id="cb6-17"><a href="#cb6-17"></a>  dt.sum<span class="op">$</span>EVPP    &lt;-<span class="st"> </span>E.ga <span class="op">+</span><span class="st"> </span>alpha.ga.E<span class="op">*</span>E.ga   <span class="co"># risk premium in SDPP</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a></span>
+<span id="cb6-19"><a href="#cb6-19"></a>  dt.sum<span class="op">$</span>loading.E  &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>EVPP <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure  <span class="co"># risk loading in EVPP</span></span>
+<span id="cb6-20"><a href="#cb6-20"></a>  dt.sum<span class="op">$</span>loading.sd &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>SDPP <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure  <span class="co"># risk loading in EVPP</span></span></code></pre></div>
 </div>
 <div id="qrii" class="section level3">
 <h3>QRII</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>  theta_Tra &lt;-<span class="st"> </span><span class="fl">0.7908</span></span>
-<span id="cb8-2"><a href="#cb8-2"></a>  m.QRII  &lt;-<span class="st"> </span><span class="kw">rq</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt0, <span class="dt">tau =</span> theta_Tra) </span>
-<span id="cb8-3"><a href="#cb8-3"></a>  dt.sum<span class="op">$</span>QRII &lt;-<span class="st"> </span><span class="kw">exp</span>(<span class="kw">predict</span>(m.QRII, <span class="dt">newdata =</span> dt.sum))<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>dt.sum<span class="op">$</span>pi.pred)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>  theta_Tra &lt;-<span class="st"> </span><span class="fl">0.7908</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a>  m.QRII  &lt;-<span class="st"> </span><span class="kw">rq</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt0, <span class="dt">tau =</span> theta_Tra) </span>
+<span id="cb7-3"><a href="#cb7-3"></a>  dt.sum<span class="op">$</span>QRII &lt;-<span class="st"> </span><span class="kw">exp</span>(<span class="kw">predict</span>(m.QRII, <span class="dt">newdata =</span> dt.sum))<span class="op">*</span>(<span class="dv">1</span><span class="op">-</span>dt.sum<span class="op">$</span>pi.pred)</span></code></pre></div>
 </div>
 <div id="qr" class="section level3">
 <h3>QR</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a> <span class="co"># solve the risk loading parameter</span></span>
-<span id="cb9-2"><a href="#cb9-2"></a>  theta &lt;-<span class="st"> </span><span class="fl">0.95</span>  <span class="co"># quantile level for aggregate claim amount</span></span>
-<span id="cb9-3"><a href="#cb9-3"></a>  dt.sum<span class="op">$</span>theta_star &lt;-<span class="st"> </span>(theta <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>pi.pred)<span class="op">/</span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>pi.pred) <span class="co"># quantile level for non-zero aggregate claim amount</span></span>
-<span id="cb9-4"><a href="#cb9-4"></a>  E.L &lt;-<span class="st"> </span><span class="kw">sum</span>(dt.sum<span class="op">$</span>Pure<span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="co"># total pure premium</span></span>
-<span id="cb9-5"><a href="#cb9-5"></a>  dt.sum<span class="op">$</span>QR<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
-<span id="cb9-6"><a href="#cb9-6"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">24</span>){</span>
-<span id="cb9-7"><a href="#cb9-7"></a>    m.s     &lt;-<span class="st"> </span><span class="kw">rq</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt0, <span class="dt">tau =</span> dt.sum<span class="op">$</span>theta_star[i])  <span class="co"># QR model</span></span>
-<span id="cb9-8"><a href="#cb9-8"></a>    TraQuan &lt;-<span class="st"> </span><span class="kw">exp</span>(<span class="kw">predict</span>(m.s, <span class="dt">newdata =</span> dt.sum))</span>
-<span id="cb9-9"><a href="#cb9-9"></a>    dt.sum<span class="op">$</span>QR<span class="fl">.95</span>[i] &lt;-<span class="st"> </span>TraQuan[i]</span>
-<span id="cb9-10"><a href="#cb9-10"></a>  }</span>
-<span id="cb9-11"><a href="#cb9-11"></a>  qr.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>QR<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) <span class="co"># risk loading parameter</span></span>
-<span id="cb9-12"><a href="#cb9-12"></a>  qr.alpha</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a> <span class="co"># solve the risk loading parameter</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a>  theta &lt;-<span class="st"> </span><span class="fl">0.95</span>  <span class="co"># quantile level for aggregate claim amount</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a>  dt.sum<span class="op">$</span>theta_star &lt;-<span class="st"> </span>(theta <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>pi.pred)<span class="op">/</span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>pi.pred) <span class="co"># quantile level for non-zero aggregate claim amount</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a>  E.L &lt;-<span class="st"> </span><span class="kw">sum</span>(dt.sum<span class="op">$</span>Pure<span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="co"># total pure premium</span></span>
+<span id="cb8-5"><a href="#cb8-5"></a>  dt.sum<span class="op">$</span>QR<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
+<span id="cb8-6"><a href="#cb8-6"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">24</span>){</span>
+<span id="cb8-7"><a href="#cb8-7"></a>    m.s     &lt;-<span class="st"> </span><span class="kw">rq</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat, <span class="dt">data =</span> dt0, <span class="dt">tau =</span> dt.sum<span class="op">$</span>theta_star[i])  <span class="co"># QR model</span></span>
+<span id="cb8-8"><a href="#cb8-8"></a>    TraQuan &lt;-<span class="st"> </span><span class="kw">exp</span>(<span class="kw">predict</span>(m.s, <span class="dt">newdata =</span> dt.sum))</span>
+<span id="cb8-9"><a href="#cb8-9"></a>    dt.sum<span class="op">$</span>QR<span class="fl">.95</span>[i] &lt;-<span class="st"> </span>TraQuan[i]</span>
+<span id="cb8-10"><a href="#cb8-10"></a>  }</span>
+<span id="cb8-11"><a href="#cb8-11"></a>  qr.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>QR<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) <span class="co"># risk loading parameter</span></span>
+<span id="cb8-12"><a href="#cb8-12"></a>  qr.alpha</span></code></pre></div>
 <pre><code>## [1] 0.03001939</code></pre>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
-<span id="cb11-2"><a href="#cb11-2"></a>  dt.sum<span class="op">$</span>QR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>qr.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>QR<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) </span>
-<span id="cb11-3"><a href="#cb11-3"></a>  dt.sum<span class="op">$</span>loading.QR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>QR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure                     </span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
+<span id="cb10-2"><a href="#cb10-2"></a>  dt.sum<span class="op">$</span>QR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>qr.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>QR<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) </span>
+<span id="cb10-3"><a href="#cb10-3"></a>  dt.sum<span class="op">$</span>loading.QR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>QR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure                     </span></code></pre></div>
 </div>
 <div id="pqr" class="section level3">
 <h3>PQR</h3>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a> <span class="co"># solve the risk loading parameter in QPP</span></span>
-<span id="cb12-2"><a href="#cb12-2"></a>  m3.s &lt;-<span class="st"> </span><span class="kw">iqr</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat,</span>
-<span id="cb12-3"><a href="#cb12-3"></a>                <span class="dt">data      =</span> dt0,</span>
-<span id="cb12-4"><a href="#cb12-4"></a>                <span class="dt">formula.p =</span> <span class="op">~</span><span class="st"> </span><span class="kw">slp</span>(p,<span class="dv">3</span>))</span>
-<span id="cb12-5"><a href="#cb12-5"></a>    </span>
-<span id="cb12-6"><a href="#cb12-6"></a>  dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
-<span id="cb12-7"><a href="#cb12-7"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">24</span>){</span>
-<span id="cb12-8"><a href="#cb12-8"></a>    flag &lt;-<span class="st"> </span><span class="kw">predict</span>(m3.s, <span class="dt">type =</span> <span class="st">&quot;QF&quot;</span>, <span class="dt">p =</span> dt.sum<span class="op">$</span>theta_star[i], <span class="dt">newdata =</span> dt.sum)</span>
-<span id="cb12-9"><a href="#cb12-9"></a>    dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span>[i] &lt;-<span class="st"> </span><span class="kw">exp</span>(flag<span class="op">$</span>fit[i,<span class="dv">1</span>])</span>
-<span id="cb12-10"><a href="#cb12-10"></a>  }</span>
-<span id="cb12-11"><a href="#cb12-11"></a>  qrcf.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) </span>
-<span id="cb12-12"><a href="#cb12-12"></a>  qrcf.alpha <span class="co"># the risk loading parameter</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a> <span class="co"># solve the risk loading parameter in QPP</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a>  m3.s &lt;-<span class="st"> </span><span class="kw">iqr</span>(<span class="kw">log</span>(claimcst0) <span class="op">~</span><span class="st"> </span>veh_age <span class="op">+</span><span class="st"> </span>agecat,</span>
+<span id="cb11-3"><a href="#cb11-3"></a>                <span class="dt">data      =</span> dt0,</span>
+<span id="cb11-4"><a href="#cb11-4"></a>                <span class="dt">formula.p =</span> <span class="op">~</span><span class="st"> </span><span class="kw">slp</span>(p,<span class="dv">3</span>))</span>
+<span id="cb11-5"><a href="#cb11-5"></a>    </span>
+<span id="cb11-6"><a href="#cb11-6"></a>  dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
+<span id="cb11-7"><a href="#cb11-7"></a>  <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">24</span>){</span>
+<span id="cb11-8"><a href="#cb11-8"></a>    flag &lt;-<span class="st"> </span><span class="kw">predict</span>(m3.s, <span class="dt">type =</span> <span class="st">&quot;QF&quot;</span>, <span class="dt">p =</span> dt.sum<span class="op">$</span>theta_star[i], <span class="dt">newdata =</span> dt.sum)</span>
+<span id="cb11-9"><a href="#cb11-9"></a>    dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span>[i] &lt;-<span class="st"> </span><span class="kw">exp</span>(flag<span class="op">$</span>fit[i,<span class="dv">1</span>])</span>
+<span id="cb11-10"><a href="#cb11-10"></a>  }</span>
+<span id="cb11-11"><a href="#cb11-11"></a>  qrcf.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) </span>
+<span id="cb11-12"><a href="#cb11-12"></a>  qrcf.alpha <span class="co"># the risk loading parameter</span></span></code></pre></div>
 <pre><code>## [1] 0.03093419</code></pre>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
-<span id="cb14-2"><a href="#cb14-2"></a>  dt.sum<span class="op">$</span>PQR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>qrcf.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) <span class="co"># prediction in PQR for 24 tariff classes</span></span>
-<span id="cb14-3"><a href="#cb14-3"></a>  dt.sum<span class="op">$</span>loading.PQR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>PQR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure   </span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
+<span id="cb13-2"><a href="#cb13-2"></a>  dt.sum<span class="op">$</span>PQR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>qrcf.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>QRCF<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) <span class="co"># prediction in PQR for 24 tariff classes</span></span>
+<span id="cb13-3"><a href="#cb13-3"></a>  dt.sum<span class="op">$</span>loading.PQR &lt;-<span class="st"> </span>dt.sum<span class="op">$</span>PQR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure   </span></code></pre></div>
 </div>
 <div id="er" class="section level3">
 <h3>ER</h3>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>  <span class="co"># solve the risk loading parameter</span></span>
-<span id="cb15-2"><a href="#cb15-2"></a>  <span class="kw">library</span>(expectreg) <span class="co"># expectreg.ls</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>  <span class="co"># solve the risk loading parameter</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a>  <span class="kw">library</span>(expectreg) <span class="co"># expectreg.ls</span></span></code></pre></div>
 <pre><code>## Loading required package: mboost</code></pre>
 <pre><code>## Loading required package: stabs</code></pre>
 <pre><code>## 
@@ -719,88 +899,343 @@ summary {
 ##  akimaPermit(). Calling this function includes your agreement to
 ##  akima`s licence restrictions.</code></pre>
 <pre><code>## Loading required package: quadprog</code></pre>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1"></a>  <span class="kw">library</span>(dummies) <span class="co"># generate the dummies</span></span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1"></a>  <span class="kw">library</span>(dummies) <span class="co"># generate the dummies</span></span></code></pre></div>
 <pre><code>## dummies-1.5.6 provided by Decision Patterns</code></pre>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1"></a>  ohe_feats &lt;-<span class="st"> </span><span class="kw">names</span>(dt)[<span class="kw">sapply</span>(dt, is.factor)]</span>
-<span id="cb29-2"><a href="#cb29-2"></a>  df_all &lt;-<span class="st"> </span>dt</span>
-<span id="cb29-3"><a href="#cb29-3"></a>  df_all_sum &lt;-<span class="st"> </span>dt.sum</span>
-<span id="cb29-4"><a href="#cb29-4"></a>  <span class="cf">for</span> (f <span class="cf">in</span> ohe_feats){</span>
-<span id="cb29-5"><a href="#cb29-5"></a>    df_all &lt;-<span class="st"> </span><span class="kw">dummy.data.frame</span>(df_all, <span class="dt">names =</span> f, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
-<span id="cb29-6"><a href="#cb29-6"></a>    df_all_sum &lt;-<span class="st"> </span><span class="kw">dummy.data.frame</span>(df_all_sum, <span class="dt">names =</span> f, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
-<span id="cb29-7"><a href="#cb29-7"></a>  }</span>
-<span id="cb29-8"><a href="#cb29-8"></a></span>
-<span id="cb29-9"><a href="#cb29-9"></a>  dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
-<span id="cb29-10"><a href="#cb29-10"></a>  m3.e &lt;-<span class="st"> </span><span class="kw">expectreg.ls</span>((claimcst0) <span class="op">~</span><span class="st"> </span>agecat_<span class="dv">1</span>  <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">2</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">3</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">4</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">6</span></span>
-<span id="cb29-11"><a href="#cb29-11"></a>                       <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">1</span> <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">3</span> <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">4</span>, <span class="dt">data =</span> df_all, </span>
-<span id="cb29-12"><a href="#cb29-12"></a>                       <span class="dt">expectiles =</span> <span class="fl">0.95</span>,</span>
-<span id="cb29-13"><a href="#cb29-13"></a>                       <span class="dt">ci =</span> T)</span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1"></a>  ohe_feats &lt;-<span class="st"> </span><span class="kw">names</span>(dt)[<span class="kw">sapply</span>(dt, is.factor)]</span>
+<span id="cb28-2"><a href="#cb28-2"></a>  df_all &lt;-<span class="st"> </span>dt</span>
+<span id="cb28-3"><a href="#cb28-3"></a>  df_all_sum &lt;-<span class="st"> </span>dt.sum</span>
+<span id="cb28-4"><a href="#cb28-4"></a>  <span class="cf">for</span> (f <span class="cf">in</span> ohe_feats){</span>
+<span id="cb28-5"><a href="#cb28-5"></a>    df_all &lt;-<span class="st"> </span><span class="kw">dummy.data.frame</span>(df_all, <span class="dt">names =</span> f, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb28-6"><a href="#cb28-6"></a>    df_all_sum &lt;-<span class="st"> </span><span class="kw">dummy.data.frame</span>(df_all_sum, <span class="dt">names =</span> f, <span class="dt">sep =</span> <span class="st">&quot;_&quot;</span>)</span>
+<span id="cb28-7"><a href="#cb28-7"></a>  }</span>
+<span id="cb28-8"><a href="#cb28-8"></a></span>
+<span id="cb28-9"><a href="#cb28-9"></a>  dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="ot">NA</span>,<span class="dv">24</span>)</span>
+<span id="cb28-10"><a href="#cb28-10"></a>  m3.e &lt;-<span class="st"> </span><span class="kw">expectreg.ls</span>((claimcst0) <span class="op">~</span><span class="st"> </span>agecat_<span class="dv">1</span>  <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">2</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">3</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">4</span> <span class="op">+</span><span class="st"> </span>agecat_<span class="dv">6</span></span>
+<span id="cb28-11"><a href="#cb28-11"></a>                       <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">1</span> <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">3</span> <span class="op">+</span><span class="st"> </span>veh_age_<span class="dv">4</span>, <span class="dt">data =</span> df_all, </span>
+<span id="cb28-12"><a href="#cb28-12"></a>                       <span class="dt">expectiles =</span> <span class="fl">0.95</span>,</span>
+<span id="cb28-13"><a href="#cb28-13"></a>                       <span class="dt">ci =</span> T)</span></code></pre></div>
 <pre><code>## [1] &quot;Expectile: 0.95&quot;</code></pre>
-<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1"></a>  flag &lt;-<span class="st"> </span><span class="kw">predict</span>(m3.e, <span class="dt">newdata =</span> df_all_sum)</span>
-<span id="cb31-2"><a href="#cb31-2"></a>  dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> &lt;-<span class="st"> </span>(flag<span class="op">$</span>fit)</span>
-<span id="cb31-3"><a href="#cb31-3"></a>  eqr.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>EQR<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) </span>
-<span id="cb31-4"><a href="#cb31-4"></a>  eqr.alpha <span class="co"># the risk loading parameter in EPP</span></span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1"></a>  flag &lt;-<span class="st"> </span><span class="kw">predict</span>(m3.e, <span class="dt">newdata =</span> df_all_sum)</span>
+<span id="cb30-2"><a href="#cb30-2"></a>  dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> &lt;-<span class="st"> </span>(flag<span class="op">$</span>fit)</span>
+<span id="cb30-3"><a href="#cb30-3"></a>  eqr.alpha &lt;-<span class="st"> </span>(C <span class="op">-</span><span class="st"> </span>E.L)<span class="op">/</span>(<span class="kw">sum</span>(dt.sum<span class="op">$</span>EQR<span class="fl">.95</span><span class="op">*</span>dt.sum<span class="op">$</span>Npolicies) <span class="op">-</span><span class="st"> </span>E.L) </span>
+<span id="cb30-4"><a href="#cb30-4"></a>  eqr.alpha <span class="co"># the risk loading parameter in EPP</span></span></code></pre></div>
 <pre><code>## [1] 0.02845861</code></pre>
-<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
-<span id="cb33-2"><a href="#cb33-2"></a>  dt.sum<span class="op">$</span>EQR  &lt;-<span class="st">  </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>eqr.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) <span class="co"># prediction in EQR for individual polices</span></span>
-<span id="cb33-3"><a href="#cb33-3"></a>  dt.sum<span class="op">$</span>loading.EQR  &lt;-<span class="st">  </span>dt.sum<span class="op">$</span>EQR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure                         <span class="co"># risk loading</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a>  <span class="co"># Risk class prediction (dt.sum) </span></span>
+<span id="cb32-2"><a href="#cb32-2"></a>  dt.sum<span class="op">$</span>EQR  &lt;-<span class="st">  </span>dt.sum<span class="op">$</span>Pure <span class="op">+</span><span class="st"> </span>eqr.alpha<span class="op">*</span>(dt.sum<span class="op">$</span>EQR<span class="fl">.95</span> <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure) <span class="co"># prediction in EQR for individual polices</span></span>
+<span id="cb32-3"><a href="#cb32-3"></a>  dt.sum<span class="op">$</span>loading.EQR  &lt;-<span class="st">  </span>dt.sum<span class="op">$</span>EQR <span class="op">-</span><span class="st"> </span>dt.sum<span class="op">$</span>Pure                         <span class="co"># risk loading</span></span></code></pre></div>
 </div>
 <div id="risk-premium-comparsion" class="section level3">
 <h3>Risk premium comparsion</h3>
-<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1"></a> dt.sum[,<span class="kw">c</span>(<span class="st">&#39;veh_age&#39;</span>,<span class="st">&#39;agecat&#39;</span>,<span class="st">&quot;pi.pred&quot;</span>,</span>
-<span id="cb34-2"><a href="#cb34-2"></a>           <span class="st">&#39;Pure&#39;</span>, <span class="st">&#39;EVPP&#39;</span>, <span class="st">&#39;SDPP&#39;</span>,</span>
-<span id="cb34-3"><a href="#cb34-3"></a>           <span class="st">&#39;QR&#39;</span>,<span class="st">&#39;QRII&#39;</span>,<span class="st">&#39;PQR&#39;</span>,<span class="st">&#39;EQR&#39;</span>)]</span></code></pre></div>
-<pre><code>##     veh_age agecat   pi.pred     Pure     EVPP     SDPP       QR     QRII
-##  1:       2      1 0.7980748 522.8798 585.4492 575.9653 603.6290 728.5825
-##  2:       1      1 0.8030751 484.5772 542.5632 534.4266 546.1280 585.8366
-##  3:       3      1 0.8177389 484.9770 543.0108 536.9329 557.5157 771.1309
-##  4:       2      2 0.8282539 355.4169 397.9472 394.6938 396.5713 415.4359
-##  5:       4      1 0.8313661 491.1967 549.9747 545.9988 564.3358 784.6213
-##  6:       1      2 0.8326635 329.0733 368.4512 365.9357 361.4395 333.7301
-##  7:       2      3 0.8368123 302.3107 338.4861 336.6210 339.9508 381.7454
-##  8:       1      3 0.8410444 279.8291 313.3143 312.0252 311.2728 306.5842
-##  9:       2      4 0.8425408 296.1201 331.5547 330.3585 327.6767 346.9318
-## 10:       3      2 0.8455478 328.4437 367.7463 366.8020 369.3481 438.0837
-## 11:       1      4 0.8466515 274.0502 306.8439 306.1755 300.1419 278.5756
-## 12:       3      3 0.8533969 279.0775 312.4727 312.5648 315.3551 402.1380
-## 13:       4      2 0.8574583 331.8122 371.5179 372.2113 373.9843 444.6171
-## 14:       3      4 0.8586416 273.1725 305.8612 306.5759 303.5029 365.2107
-## 15:       4      3 0.8647989 281.7380 315.4516 316.9919 317.4089 407.8434
-## 16:       4      4 0.8696980 275.6450 308.6295 310.8006 306.7347 370.2152
-## 17:       2      5 0.8706807 215.9398 241.7798 243.5884 239.9215 273.4819
-## 18:       2      6 0.8710240 234.2777 262.3120 264.3155 261.6584 257.6863
-## 19:       1      5 0.8741665 199.6716 223.5650 225.6004 218.8141 219.4062
-## 20:       1      6 0.8745019 216.6257 242.5478 244.7949 238.5600 206.7317
-## 21:       3      5 0.8842992 198.5277 222.2841 225.4474 220.0313 286.9110
-## 22:       3      6 0.8846112 215.3780 241.1508 244.6231 240.9591 270.3286
-## 23:       4      5 0.8935975 199.8575 223.7730 228.1497 220.5483 290.1644
-## 24:       4      6 0.8938874 216.8145 242.7592 247.5502 242.1936 273.3862
-##     veh_age agecat   pi.pred     Pure     EVPP     SDPP       QR     QRII
-##          PQR      EQR
-##  1: 602.9317 578.9794
-##  2: 550.1593 535.9288
-##  3: 562.5865 538.7281
-##  4: 396.5515 396.6379
-##  5: 570.1439 546.1388
-##  6: 362.9329 365.2060
-##  7: 339.7892 338.5166
-##  8: 310.8950 310.8368
-##  9: 329.1966 332.3877
-## 10: 367.7177 367.0052
-## 11: 301.4957 305.1079
-## 12: 314.7323 312.5174
-## 13: 371.1867 371.6459
-## 14: 304.5638 306.6661
-## 15: 317.3086 316.4703
-## 16: 306.8523 310.4363
-## 17: 238.7736 244.8903
-## 18: 259.3228 264.5188
-## 19: 219.0702 223.2471
-## 20: 238.0025 241.5312
-## 21: 219.7865 224.5466
-## 22: 239.0500 242.7298
-## 23: 220.1977 227.2066
-## 24: 239.6793 245.4935
-##          PQR      EQR</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a>dt.out &lt;-<span class="st"> </span>dt.sum[,<span class="kw">c</span>(<span class="st">&#39;veh_age&#39;</span>,<span class="st">&#39;agecat&#39;</span>,<span class="st">&quot;pi.pred&quot;</span>,</span>
+<span id="cb33-2"><a href="#cb33-2"></a>           <span class="st">&#39;Pure&#39;</span>, <span class="st">&#39;EVPP&#39;</span>, <span class="st">&#39;SDPP&#39;</span>,</span>
+<span id="cb33-3"><a href="#cb33-3"></a>           <span class="st">&#39;QR&#39;</span>,<span class="st">&#39;QRII&#39;</span>,<span class="st">&#39;PQR&#39;</span>,<span class="st">&#39;EQR&#39;</span>)]</span>
+<span id="cb33-4"><a href="#cb33-4"></a><span class="kw">kable</span>(dt.out, <span class="dt">digits =</span> <span class="dv">2</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">veh_age</th>
+<th align="left">agecat</th>
+<th align="right">pi.pred</th>
+<th align="right">Pure</th>
+<th align="right">EVPP</th>
+<th align="right">SDPP</th>
+<th align="right">QR</th>
+<th align="right">QRII</th>
+<th align="right">PQR</th>
+<th align="right">EQR</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">1</td>
+<td align="right">0.80</td>
+<td align="right">522.88</td>
+<td align="right">585.45</td>
+<td align="right">575.97</td>
+<td align="right">603.63</td>
+<td align="right">728.58</td>
+<td align="right">602.93</td>
+<td align="right">578.98</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="right">0.80</td>
+<td align="right">484.58</td>
+<td align="right">542.56</td>
+<td align="right">534.43</td>
+<td align="right">546.13</td>
+<td align="right">585.84</td>
+<td align="right">550.16</td>
+<td align="right">535.93</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">1</td>
+<td align="right">0.82</td>
+<td align="right">484.98</td>
+<td align="right">543.01</td>
+<td align="right">536.93</td>
+<td align="right">557.52</td>
+<td align="right">771.13</td>
+<td align="right">562.59</td>
+<td align="right">538.73</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">2</td>
+<td align="right">0.83</td>
+<td align="right">355.42</td>
+<td align="right">397.95</td>
+<td align="right">394.69</td>
+<td align="right">396.57</td>
+<td align="right">415.44</td>
+<td align="right">396.55</td>
+<td align="right">396.64</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">1</td>
+<td align="right">0.83</td>
+<td align="right">491.20</td>
+<td align="right">549.97</td>
+<td align="right">546.00</td>
+<td align="right">564.34</td>
+<td align="right">784.62</td>
+<td align="right">570.14</td>
+<td align="right">546.14</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">2</td>
+<td align="right">0.83</td>
+<td align="right">329.07</td>
+<td align="right">368.45</td>
+<td align="right">365.94</td>
+<td align="right">361.44</td>
+<td align="right">333.73</td>
+<td align="right">362.93</td>
+<td align="right">365.21</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">3</td>
+<td align="right">0.84</td>
+<td align="right">302.31</td>
+<td align="right">338.49</td>
+<td align="right">336.62</td>
+<td align="right">339.95</td>
+<td align="right">381.75</td>
+<td align="right">339.79</td>
+<td align="right">338.52</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">3</td>
+<td align="right">0.84</td>
+<td align="right">279.83</td>
+<td align="right">313.31</td>
+<td align="right">312.03</td>
+<td align="right">311.27</td>
+<td align="right">306.58</td>
+<td align="right">310.89</td>
+<td align="right">310.84</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">4</td>
+<td align="right">0.84</td>
+<td align="right">296.12</td>
+<td align="right">331.55</td>
+<td align="right">330.36</td>
+<td align="right">327.68</td>
+<td align="right">346.93</td>
+<td align="right">329.20</td>
+<td align="right">332.39</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">2</td>
+<td align="right">0.85</td>
+<td align="right">328.44</td>
+<td align="right">367.75</td>
+<td align="right">366.80</td>
+<td align="right">369.35</td>
+<td align="right">438.08</td>
+<td align="right">367.72</td>
+<td align="right">367.01</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">4</td>
+<td align="right">0.85</td>
+<td align="right">274.05</td>
+<td align="right">306.84</td>
+<td align="right">306.18</td>
+<td align="right">300.14</td>
+<td align="right">278.58</td>
+<td align="right">301.50</td>
+<td align="right">305.11</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">3</td>
+<td align="right">0.85</td>
+<td align="right">279.08</td>
+<td align="right">312.47</td>
+<td align="right">312.56</td>
+<td align="right">315.36</td>
+<td align="right">402.14</td>
+<td align="right">314.73</td>
+<td align="right">312.52</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">2</td>
+<td align="right">0.86</td>
+<td align="right">331.81</td>
+<td align="right">371.52</td>
+<td align="right">372.21</td>
+<td align="right">373.98</td>
+<td align="right">444.62</td>
+<td align="right">371.19</td>
+<td align="right">371.65</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">4</td>
+<td align="right">0.86</td>
+<td align="right">273.17</td>
+<td align="right">305.86</td>
+<td align="right">306.58</td>
+<td align="right">303.50</td>
+<td align="right">365.21</td>
+<td align="right">304.56</td>
+<td align="right">306.67</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">3</td>
+<td align="right">0.86</td>
+<td align="right">281.74</td>
+<td align="right">315.45</td>
+<td align="right">316.99</td>
+<td align="right">317.41</td>
+<td align="right">407.84</td>
+<td align="right">317.31</td>
+<td align="right">316.47</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">4</td>
+<td align="right">0.87</td>
+<td align="right">275.65</td>
+<td align="right">308.63</td>
+<td align="right">310.80</td>
+<td align="right">306.73</td>
+<td align="right">370.22</td>
+<td align="right">306.85</td>
+<td align="right">310.44</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">5</td>
+<td align="right">0.87</td>
+<td align="right">215.94</td>
+<td align="right">241.78</td>
+<td align="right">243.59</td>
+<td align="right">239.92</td>
+<td align="right">273.48</td>
+<td align="right">238.77</td>
+<td align="right">244.89</td>
+</tr>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">6</td>
+<td align="right">0.87</td>
+<td align="right">234.28</td>
+<td align="right">262.31</td>
+<td align="right">264.32</td>
+<td align="right">261.66</td>
+<td align="right">257.69</td>
+<td align="right">259.32</td>
+<td align="right">264.52</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">5</td>
+<td align="right">0.87</td>
+<td align="right">199.67</td>
+<td align="right">223.56</td>
+<td align="right">225.60</td>
+<td align="right">218.81</td>
+<td align="right">219.41</td>
+<td align="right">219.07</td>
+<td align="right">223.25</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">6</td>
+<td align="right">0.87</td>
+<td align="right">216.63</td>
+<td align="right">242.55</td>
+<td align="right">244.79</td>
+<td align="right">238.56</td>
+<td align="right">206.73</td>
+<td align="right">238.00</td>
+<td align="right">241.53</td>
+</tr>
+<tr class="odd">
+<td align="left">3</td>
+<td align="left">5</td>
+<td align="right">0.88</td>
+<td align="right">198.53</td>
+<td align="right">222.28</td>
+<td align="right">225.45</td>
+<td align="right">220.03</td>
+<td align="right">286.91</td>
+<td align="right">219.79</td>
+<td align="right">224.55</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">6</td>
+<td align="right">0.88</td>
+<td align="right">215.38</td>
+<td align="right">241.15</td>
+<td align="right">244.62</td>
+<td align="right">240.96</td>
+<td align="right">270.33</td>
+<td align="right">239.05</td>
+<td align="right">242.73</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">5</td>
+<td align="right">0.89</td>
+<td align="right">199.86</td>
+<td align="right">223.77</td>
+<td align="right">228.15</td>
+<td align="right">220.55</td>
+<td align="right">290.16</td>
+<td align="right">220.20</td>
+<td align="right">227.21</td>
+</tr>
+<tr class="even">
+<td align="left">4</td>
+<td align="left">6</td>
+<td align="right">0.89</td>
+<td align="right">216.81</td>
+<td align="right">242.76</td>
+<td align="right">247.55</td>
+<td align="right">242.19</td>
+<td align="right">273.39</td>
+<td align="right">239.68</td>
+<td align="right">245.49</td>
+</tr>
+</tbody>
+</table>
 </div>
 
 
