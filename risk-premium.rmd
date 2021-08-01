@@ -1,0 +1,239 @@
+---
+title: "Risk premium using GLMs, QR, QRII, PQR and ER"
+output:
+  html_document:
+    highlight: tango
+    ## espresso
+    # zenburn tango
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+    number_sections: true
+---
+
+
+### load packages
+
+```{r message=FALSE, warning=FALSE}
+  library(data.table)
+  library(gamlss)
+  library(quantreg)
+  library(qrcm)
+  library(knitr)     # kable
+  library(cplm)      # cpqlm
+
+
+# define the logistic link function with exposures
+  logitexp <- function(exposure = 1){
+    linkfun <- function(mu) {            
+      eta <- if (any(exposure-mu <= 0)) log((mu)/abs(mu-exposure)) else log((mu)/(exposure-mu))
+      eta 
+    }
+    
+    linkinv <- function(eta) {
+      thresh <- -log(.Machine$double.eps)
+      eta <- pmin(thresh, pmax(eta, -thresh))
+      exposure*(exp(eta)/(1 + exp(eta)))
+    }
+    
+    mu.eta <- function(eta) {
+      thresh <- -log(.Machine$double.eps)
+      res <- rep(.Machine$double.eps, length(eta))
+      res[abs(eta) < thresh] <- ((exposure*exp(eta))/(1 + exp(eta))^2)[abs(eta) < thresh]
+      res
+    }
+    
+    valideta <- function(eta) TRUE 
+    link <- paste("logexp(", exposure, ")", sep="") 
+    structure(list(linkfun = linkfun, linkinv = linkinv, mu.eta = mu.eta, 
+                   valideta = valideta, name = link), class = "link-glm") 
+  }
+
+```
+
+
+
+### read data set from the local disk
+```{r message=TRUE, warning=FALSE}
+  dt            <- fread('car.csv')
+  dt$claimcst00 <- dt$claimcst0/dt$exposure
+  dt$count   <- 1
+  dt$veh_age <- factor(dt$veh_age, levels = c(2, 1, 3, 4))
+  dt$agecat  <- factor(dt$agecat,  levels = c(5, 1, 2, 3, 4, 6))
+  dt0        <- subset(dt, claimcst0 > 0)
+  # data set for 24 risk classes
+  dt.sum     <- dt[, .(Ncount    = sum(count), 
+                       exposure  = sum(exposure), 
+                       Npolicies = sum(count)),
+                       by = c('veh_age', 'agecat')]
+  
+  # modelling claim probability
+  m_clm     <- glm(clm ~ veh_age + agecat, family=binomial(link=logitexp(dt$exposure)), data=dt)
+  X1        <- model.matrix( ~ veh_age + agecat, data=dt.sum)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X1%*%beta_pred
+  pi.pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred))) 
+  dt.sum$pi.pred <- pi.pred
+  dt.sum    <- dt.sum[order(pi.pred)] # sort by the claim probability
+  dt.sum
+```
+
+### total risk premium for the whole insurance portfolio
+
+```{r message=TRUE, warning=FALSE}
+C <- 22206147 # total risk premium that the insurer should charge
+```
+
+
+### Two-part GLMs: Logistic + gamma (EVPP + SDPP)
+```{r message=TRUE, warning=FALSE}
+
+ # 0-1 claim or not part
+  m_clm     <- glm(clm ~ veh_age + agecat, family=binomial(link=logitexp(exposure=dt$exposure)), data=dt)
+  X_pred    <- model.matrix( ~ veh_age + agecat, data = dt)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X_pred%*%beta_pred
+  pi_pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred)))#*dt$exposure
+
+  # claim > 0 claim amount part
+  m.claim   <- glm(claimcst0 ~ veh_age + agecat, family = Gamma(link='log'), data = dt0)
+  X_pred    <- model.matrix( ~ veh_age + agecat, data = dt)
+  beta_pred <- coef(m.claim)
+  y_pred    <- exp(X_pred%*%beta_pred)
+ 
+  #--------------------------------------------------------------------------
+  # solve the risk loading parameter in EVPP and SDPP: alpha.ga.E and alpha.ga.sd
+  #--------------------------------------------------------------------------
+  Dis_par <- 3.103186 # Dispersion parameter
+  E.ga    <- (1 - pi_pred)*y_pred
+  Var.ga  <- (1 - pi_pred)*y_pred^2*(pi_pred + Dis_par)
+  sd.ga   <- sqrt(Var.ga)
+  alpha.ga.E  <- C/sum(E.ga) - 1            # risk roading parameter in EVPP
+  alpha.ga.sd <- (C - sum(E.ga))/sum(sd.ga) # risk roading parameter in SDPP
+  c(alpha.ga.E*100, alpha.ga.sd*100)
+
+
+  #----------------------------------------------------------
+  # estimation of risk premium for 24 risk classes (dt.sum)
+  #----------------------------------------------------------
+  X1        <- model.matrix( ~ veh_age + agecat, data = dt.sum)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X1%*%beta_pred
+  pi.pred   <- 1 - (exp(eta_pred)/(1 + exp(eta_pred)))
+  
+  beta_pred <- coef(m.claim)
+  mu        <- exp(X1%*%beta_pred)
+  E.ga      <- (1 - pi.pred)*mu
+  var.ga    <- (1 - pi.pred)*mu^2*(pi.pred + Dis_par)
+  sd.ga     <- sqrt(var.ga)
+
+  dt.sum$Pure    <- E.ga                     # pure premium
+  dt.sum$SDPP    <- E.ga + alpha.ga.sd*sd.ga # risk premium in EVPP
+  dt.sum$EVPP    <- E.ga + alpha.ga.E*E.ga   # risk premium in SDPP
+
+  dt.sum$loading.E  <- dt.sum$EVPP - dt.sum$Pure  # risk loading in EVPP
+  dt.sum$loading.sd <- dt.sum$SDPP - dt.sum$Pure  # risk loading in EVPP
+
+ 
+```
+
+
+### QRII
+
+```{r message=TRUE, warning=FALSE}
+  theta_Tra <- 0.7908
+  m.QRII  <- rq(log(claimcst0) ~ veh_age + agecat, data = dt0, tau = theta_Tra) 
+  dt.sum$QRII <- exp(predict(m.QRII, newdata = dt.sum))*(1-dt.sum$pi.pred)
+```
+
+### QR
+```{r message=TRUE, warning=FALSE}
+ # solve the risk loading parameter
+  theta <- 0.95  # quantile level for aggregate claim amount
+  dt.sum$theta_star <- (theta - dt.sum$pi.pred)/(1 - dt.sum$pi.pred) # quantile level for non-zero aggregate claim amount
+  E.L <- sum(dt.sum$Pure*dt.sum$Npolicies) # total pure premium
+  dt.sum$QR.95 <- rep(NA,24)
+  for(i in 1:24){
+    m.s     <- rq(log(claimcst0) ~ veh_age + agecat, data = dt0, tau = dt.sum$theta_star[i])  # QR model
+    TraQuan <- exp(predict(m.s, newdata = dt.sum))
+    dt.sum$QR.95[i] <- TraQuan[i]
+  }
+  qr.alpha <- (C - E.L)/(sum(dt.sum$QR.95*dt.sum$Npolicies) - E.L) # risk loading parameter
+  qr.alpha
+
+  # Risk class prediction (dt.sum) 
+  dt.sum$QR <- dt.sum$Pure + qr.alpha*(dt.sum$QR.95 - dt.sum$Pure) 
+  dt.sum$loading.QR <- dt.sum$QR - dt.sum$Pure                     
+```
+
+
+### PQR
+```{r message=TRUE, warning=FALSE}
+ # solve the risk loading parameter in QPP
+  m3.s <- iqr(log(claimcst0) ~ veh_age + agecat,
+                data      = dt0,
+                formula.p = ~ slp(p,3))
+    
+  dt.sum$QRCF.95 <- rep(NA,24)
+  for(i in 1:24){
+    flag <- predict(m3.s, type = "QF", p = dt.sum$theta_star[i], newdata = dt.sum)
+    dt.sum$QRCF.95[i] <- exp(flag$fit[i,1])
+  }
+  qrcf.alpha <- (C - E.L)/(sum(dt.sum$QRCF.95*dt.sum$Npolicies) - E.L) 
+  qrcf.alpha # the risk loading parameter
+  
+
+  # Risk class prediction (dt.sum) 
+  dt.sum$PQR <- dt.sum$Pure + qrcf.alpha*(dt.sum$QRCF.95 - dt.sum$Pure) # prediction in PQR for 24 tariff classes
+  dt.sum$loading.PQR <- dt.sum$PQR - dt.sum$Pure   
+
+```
+
+
+
+### ER
+```{r message=TRUE, warning=FALSE}
+  # solve the risk loading parameter
+  library(expectreg) # expectreg.ls
+  library(dummies) # generate the dummies
+  ohe_feats <- names(dt)[sapply(dt, is.factor)]
+  df_all <- dt
+  df_all_sum <- dt.sum
+  for (f in ohe_feats){
+    df_all <- dummy.data.frame(df_all, names = f, sep = "_")
+    df_all_sum <- dummy.data.frame(df_all_sum, names = f, sep = "_")
+  }
+
+  dt.sum$EQR.95 <- rep(NA,24)
+  m3.e <- expectreg.ls((claimcst0) ~ agecat_1  + agecat_2 + agecat_3 + agecat_4 + agecat_6
+                       + veh_age_1 + veh_age_3 + veh_age_4, data = df_all, 
+                       expectiles = 0.95,
+                       ci = T)
+  flag <- predict(m3.e, newdata = df_all_sum)
+  dt.sum$EQR.95 <- (flag$fit)
+  eqr.alpha <- (C - E.L)/(sum(dt.sum$EQR.95*dt.sum$Npolicies) - E.L) 
+  eqr.alpha # the risk loading parameter in EPP
+  
+  
+  # Risk class prediction (dt.sum) 
+  dt.sum$EQR  <-  dt.sum$Pure + eqr.alpha*(dt.sum$EQR.95 - dt.sum$Pure) # prediction in EQR for individual polices
+  dt.sum$loading.EQR  <-  dt.sum$EQR - dt.sum$Pure                         # risk loading
+ 
+  
+```
+
+
+
+
+### Risk premium comparsion
+
+```{r message=TRUE, warning=FALSE}
+
+ dt.sum[,c('veh_age','agecat',"pi.pred",
+           'Pure', 'EVPP', 'SDPP',
+           'QR','QRII','PQR','EQR')]
+```
+
+

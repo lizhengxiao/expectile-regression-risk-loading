@@ -1,2 +1,8 @@
 # expectile-regression-risk-loading
- R code for the paper "Using expectile regression for classification ratemaking"
+
+This program provides the R code for the paper "Using expectile regression for classification ratemaking".
+
+
+- 1
+- 2
+- 3
