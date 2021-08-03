@@ -3,27 +3,29 @@ title: "Risk premium using GLMs, QR, QRII, PQR and ER"
 output:
   html_document:
     highlight: tango
-    ## espresso
-    # zenburn tango
     theme: readable
     toc: yes
+  word_document:
+    toc: yes
+    toc_depth: '4'
   pdf_document:
     toc: yes
-    toc_depth: 2
-    number_sections: true
+    toc_depth: 4
+    number_sections: yes
 ---
 
 
-### load packages
+## Load packages
 
-```{r message=FALSE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
   library(data.table)
   library(gamlss)
   library(quantreg)
   library(qrcm)
   library(knitr)     # kable
   library(cplm)      # cpqlm
-
+  library(tweedie)
+  library(expectreg)
 
 # define the logistic link function with exposures
   logitexp <- function(exposure = 1){
@@ -55,9 +57,547 @@ output:
 
 
 
+## Section 4: Simulation study
+
+### Case: MSE and sample variance of the estimated risk premium with respect to the values of the risk loading parameter $\varphi$
+
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+set.seed(111)
+Nsim <- 2000
+mse.mat <- matrix(0, nrow = Nsim, ncol = 4) # mse results
+colnames(rmse.mat) <- c('QR', 'QRCF', "QRII" ,'EQR') # the competing models
+alpha.vector <- seq(from = 0, to = 0.15, by = 0.02) # risk loading parameters
+alpha.vector <- alpha.vector[-1]
+pars <- c(120, 1.65) # power and dispersion parameter in tweedie distribution
+
+mse <- svar.mse  <- matrix(NA, nrow = length(alpha.vector), 4)
+
+for (j in 1:length(alpha.vector)){
+  alpha <- alpha.vector[j]
+  for(k in 1:Nsim){
+    nsample <- 5000
+    x1sim <- rbinom(n = nsample, size = 1, prob = 0.6) # covariates
+    x2sim <- rbinom(n = nsample, size = 1, prob = 0.8)
+    x3sim <- rbinom(n = nsample, size = 1, prob = 0.5)
+    beta <- c(4, 0.5, 0.5, 0.5) # coffieients
+    X <- model.matrix( ~ x1sim + x2sim + x3sim) # Regression coefficients
+    mu <- as.vector(exp(X%*%beta)) # mean parameter in tweedie distribution
+    
+    
+    phi <- pars[1] # dispersion parameter
+    p <- pars[2]   # power parameter
+    # true value of C, Pure premium, and Risk prmeium
+    C <- sum((1 + alpha)*mu) # risk loading parameter is 10% using expected value premium principle
+    E.L <- sum(mu) # true pure premium
+    riskP <- mu*(1 + alpha) # true risk premium for dt
+    ysim <- 0
+    for(i in 1:nsample){
+      ysim[i] <- rtweedie(n = 1, mu = mu[i], phi = phi, power = p)
+    }
+    
+    dt <- data.table(x1 = x1sim,
+                     x2 = x2sim,
+                     x3 = x3sim,
+                     y = ysim,
+                     clm = ifelse(ysim == 0, 0, 1))
+    dt0 <- dt[y > 0]
+    dt$count <- 1
+    dt.sum     <- dt[, .( y = sum(y), Npolicies = sum(count)),
+                     by = c('x1', 'x2', 'x3')
+    ]
+    dt.sum <- dt.sum[order(x1, x2, x3)] # tariff classes for prediction
+    # logistic regression
+    m_clm     <- glm(clm ~ x1 + x2 + x3, family = binomial(link = "logit"), data = dt)
+    X1        <- model.matrix( ~ x1 + x2 + x3, data = dt.sum)
+    beta_pred <- coef(m_clm)
+    eta_pred  <- X1%*%beta_pred
+    pi.pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred)))
+    dt.sum$pi.pred <- pi.pred
+    dt.sum$mu <- exp(X1%*%beta)
+    # true risk premium 
+    dt.sum$riskP <- (1 + alpha)*dt.sum$mu
+
+    ## =======================================================================
+    # Two-part GLMs: Logistic + gamma
+    ## =======================================================================
+    # 0-1 claim or not part
+    m_clm     <- glm(clm ~ x1 + x2 + x3, family = binomial(link = "logit"), data = dt)
+    X_pred    <- model.matrix( ~ x1 + x2 + x3, data = dt)
+    beta_pred <- coef(m_clm)
+    eta_pred  <- X_pred%*%beta_pred
+    pi_pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred)))#*dt$exposure
+    
+    # claim > 0 claim amount part
+    m.claim   <- glm(y ~ x1 + x2 + x3, family = Gamma(link='log'), data = dt0)
+    X_pred    <- model.matrix( ~ x1 + x2 + x3, data = dt)
+    beta_pred <- coef(m.claim)
+    y_pred    <- exp(X_pred%*%beta_pred)
+    
+    
+    
+    #-----------------------------
+    # prediction for dt.sum
+    #-----------------------------
+    X1        <- model.matrix( ~ x1 + x2 + x3, data = dt.sum)
+    beta_pred <- coef(m_clm)
+    eta_pred  <- X1%*%beta_pred
+    pi.pred   <- 1 - (exp(eta_pred)/(1 + exp(eta_pred)))  # non-claim probability (exposure=1)
+    beta_pred <- coef(m.claim)
+    mu        <- exp(X1%*%beta_pred)
+    E.ga      <- (1 - pi.pred)*mu
+    
+    dt.sum$Pure    <- E.ga                     # pure premium
+    
+    
+    ## =======================================================================
+    # Two-part quantile regressions
+    # QR & PQR(QRCF) & ER
+    ## =======================================================================
+    
+    theta <- 0.95 # quantile level
+    dt.sum$theta_star <- (theta - dt.sum$pi.pred)/(1 - dt.sum$pi.pred) # non-zero quantile level
+    #-----------------------------
+    # QR model
+    #-----------------------------
+    dt$QR.95 <- 0
+    for(i in 1:nrow(dt.sum)){
+      m.s     <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = dt.sum$theta_star[i])  # QR model
+      TraQuan <- exp(predict(m.s, newdata = dt.sum))#*(1-dt.sum$pi.pred) # prediction
+      dt.sum$QR.95[i] <- TraQuan[i]
+    }
+    qr.alpha <<- (C - E.L)/(sum(dt.sum$QR.95*dt.sum$Npolicies) - E.L) 
+    
+    #-----------------------------
+    # QR
+    # Risk class prediction (dt.sum) 
+    #-----------------------------
+    dt.sum$QR <- dt.sum$Pure + qr.alpha*(dt.sum$QR.95 - dt.sum$Pure) 
+    dt.sum$loading.QR <- dt.sum$QR - dt.sum$Pure                        
+    
+    
+    #-----------------------------
+    # QRII model
+    # Risk class prediction (dt.sum) 
+    #-----------------------------
+    theta_solve <- function(theta){
+      m.s  <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = theta) 
+      flag <- exp(predict(m.s, newdata = dt.sum))*(1-dt.sum$pi.pred)
+      bias <- C - sum(flag*dt.sum$Npolicies)
+      return(bias)
+    }
+    upper_theta <- 0.99999
+    lower_theta <- 0.00000001
+    library(rootSolve)
+    # solve the quantile level (risk loading parameter in QRII)
+    m_solve <- uniroot(f       = theta_solve,
+                       lower   = lower_theta,
+                       upper   = upper_theta,
+                       maxiter = 50000,
+                       tol     = .Machine$double.eps^0.525) 
+    theta_Tra <- m_solve$root
+    m.s  <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = theta_Tra) 
+    flag <- exp(predict(m.s, newdata = dt.sum))*(1-dt.sum$pi.pred)
+    dt.sum$QRII <- flag
+    
+    #-----------------------------
+    # PQR(QRCF) model
+    # solve risk loading parameter 
+    #-----------------------------
+    m3.s <- iqr(log(y) ~ x1 + x2 + x3,
+                data      = dt0,
+                formula.p = ~ slp(p,3))
+    dt.sum$QRCF.95 <- 0
+    for(i in 1:nrow(dt.sum)){
+      flag <- predict(m3.s, type = "QF", p = dt.sum$theta_star[i], newdata = dt.sum)
+      dt.sum$QRCF.95[i] <- exp(flag$fit[i,1])
+    }
+    qrcf.alpha <<- (C - E.L)/(sum(dt.sum$QRCF.95*dt.sum$Npolicies) - E.L)  # risk loading parameter 
+    
+    #-----------------------------
+    # QRCF
+    # dt.sum
+    #-----------------------------
+    dt.sum$QRCF <- dt.sum$Pure + qrcf.alpha*(dt.sum$QRCF.95 - dt.sum$Pure) # risk premium 
+    dt.sum$loading.QRCF <- dt.sum$QRCF - dt.sum$Pure        # risk loading                  
+    
+    
+    
+    #-----------------------------
+    # expectiel regression (EQR)
+    # solve alpha
+    #-----------------------------
+    
+    dt.sum$EQR.95 <- 0
+    
+    m3.e <- expectreg.ls((y) ~ x1 + x2 + x3, data = dt, expectiles = 0.95)
+    flag <- predict(m3.e, newdata = dt.sum)
+    dt.sum$EQR.95 <- (flag$fit)
+    eqr.alpha <- (C - E.L)/(sum(dt.sum$EQR.95*dt.sum$Npolicies) - E.L) 
+    
+    
+    
+    #-----------------------------
+    # EQR
+    # dt.sum
+    #-----------------------------
+    dt.sum$EQR <- dt.sum$Pure + eqr.alpha*(dt.sum$EQR.95 - dt.sum$Pure) 
+    dt.sum$loading.EQR <- dt.sum$EQR - dt.sum$Pure                       
+    
+    # #-----------------------------
+    # # MSE
+    # #-----------------------------
+    
+    mse.mat[k,] <- with(dt.sum, {
+      c(sum(((QR - riskP))^2),
+        sum(((QRCF - riskP))^2),
+        sum(((QRII - riskP))^2),
+        sum(((EQR - riskP))^2))/nrow(dt.sum)
+    })
+
+  }
+  mean.mse <- apply(mse.mat, 2, mean)
+  # mse for all models
+  mse[j,] <- apply(mse.mat, 2, mean)
+  # sample variance for all models
+  svar.mse[j,] <- c(sum((mse.mat[,1] -  mean.mse[1])^2)/(Nsim - 1)/Nsim,
+                    sum((mse.mat[,2] -  mean.mse[2])^2)/(Nsim - 1)/Nsim,
+                    sum((mse.mat[,3] -  mean.mse[3])^2)/(Nsim - 1)/Nsim,
+                    sum((mse.mat[,4] -  mean.mse[4])^2)/(Nsim - 1)/Nsim)
+
+  
+}
+
+```
+
+```{r message=FALSE, warning=FALSE}
+load("D:/对外经济贸易大学 - 科研/0. Risk Loadings of Classification Ratemaking（in progress)/2021-final-code/mse_overall.RData")
+
+row.names(mse) <- alpha.vector
+row.names(svar.mse) <- alpha.vector
+colnames(mse) <- c('QR', 'QRCF', "QRII" ,'EQR')
+colnames(svar.mse) <- c('QR', 'QRCF', "QRII" ,'EQR')
+
+kable(mse, digits = 2)
+kable(svar.mse, digits = 2)
+
+```
+
+### Case: MSE and sample variance of the estimated risk premium for 8 tariff classes in the case of $\varphi=0.05,0.10,0.15$.
+
+```{r eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(111)
+Nsim <- 2000
+alpha.vector <- c(0.05, 0.1, 0.15)
+pars <- c(120, 1.65)
+for(i in 1:8){
+  assign(paste0("bias", i, ".mat"), matrix(0, nrow = Nsim, ncol = 4))
+  assign(paste0("mse", i, ".mat"), matrix(0, nrow = Nsim, ncol = 4))
+  assign(paste0("z", i, ".mat"), matrix(0, nrow = Nsim, ncol = 4))
+  
+  assign(paste0("bias", i, ".list"), list())
+  assign(paste0("mse", i, ".list"), list())
+  
+  assign(paste0("bias", i), matrix(0, nrow = length(alpha.vector), ncol = 4))
+  assign(paste0("mse", i), matrix(0, nrow = length(alpha.vector), ncol = 4))
+  assign(paste0("var", i), matrix(0, nrow = length(alpha.vector), ncol = 4))
+  
+  
+} 
+
+for (j in 1:length(alpha.vector)){
+  alpha <- alpha.vector[j]
+for(k in 1:Nsim){
+  nsample <- 5000
+  x1sim <- rbinom(n = nsample, size = 1, prob = 0.6)
+  x2sim <- rbinom(n = nsample, size = 1, prob = 0.8)
+  x3sim <- rbinom(n = nsample, size = 1, prob = 0.5)
+  beta <- c(4, 0.5, 0.5, 0.5)
+  X <- model.matrix( ~ x1sim + x2sim + x3sim)
+  mu <- as.vector(exp(X%*%beta))
+
+  phi <- pars[1]
+  p <- pars[2]
+  # true value of C, Pure premium, and Risk prmeium
+  C <- sum((1 + alpha)*mu) # risk loading parameter is 10% using expected value premium principle
+  E.L <- sum(mu) # true pure premium
+  riskP <- mu*(1 + alpha) # true risk premium for dt
+  ysim <- 0
+  for(i in 1:nsample){
+    ysim[i] <- rtweedie(n = 1, mu = mu[i], phi = phi, power = p)
+  }
+
+  dt <- data.table(x1 = x1sim,
+                   x2 = x2sim,
+                   x3 = x3sim,
+                   y = ysim,
+                   clm = ifelse(ysim == 0, 0, 1))
+  dt0 <- dt[y > 0]
+  dt$count <- 1
+  dt.sum     <- dt[, .( y = sum(y), Npolicies = sum(count)),
+                   by = c('x1', 'x2', 'x3')
+                   ]
+  dt.sum <- dt.sum[order(x1, x2, x3)]
+
+  m_clm     <- glm(clm ~ x1 + x2 + x3, family = binomial(link = "logit"), data = dt)
+  X1        <- model.matrix( ~ x1 + x2 + x3, data = dt.sum)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X1%*%beta_pred
+  pi.pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred)))
+  dt.sum$pi.pred <- pi.pred
+  dt.sum$mu <- exp(X1%*%beta)
+  # true risk premium
+  dt.sum$riskP <- (1 + alpha)*dt.sum$mu
+
+
+  ## =========================================================================
+  # Two-part GLMs: Logistic + gamma
+  ## =========================================================================
+  # 0-1 claim or not part
+  m_clm     <- glm(clm ~ x1 + x2 + x3, family = binomial(link = "logit"), data = dt)
+  X_pred    <- model.matrix( ~ x1 + x2 + x3, data = dt)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X_pred%*%beta_pred
+  pi_pred   <- 1 - (exp(eta_pred)/(1+exp(eta_pred)))
+  
+  # claim > 0 claim amount part
+  m.claim   <- glm(y ~ x1 + x2 + x3, family = Gamma(link='log'), data = dt0)
+  X_pred    <- model.matrix( ~ x1 + x2 + x3, data = dt)
+  beta_pred <- coef(m.claim)
+  y_pred    <- exp(X_pred%*%beta_pred)
+  
+ 
+  
+  #-----------------------------
+  # dt.sum data set
+  #-----------------------------
+  X1        <- model.matrix( ~ x1 + x2 + x3, data = dt.sum)
+  beta_pred <- coef(m_clm)
+  eta_pred  <- X1%*%beta_pred
+  pi.pred   <- 1 - (exp(eta_pred)/(1 + exp(eta_pred)))  # non-claim probability
+  beta_pred <- coef(m.claim)
+  mu        <- exp(X1%*%beta_pred)
+  E.ga      <- (1 - pi.pred)*mu
+ 
+  dt.sum$Pure    <- E.ga                     # pure
+
+  
+  ## ========================================================================
+  # Two-part quantile regressions
+  # QR & QRCF & & QRII ER
+  ## ========================================================================
+  
+  theta <- 0.95
+  dt.sum$theta_star <- (theta - dt.sum$pi.pred)/(1 - dt.sum$pi.pred)
+  
+  dt$QR.95 <- 0
+  for(i in 1:nrow(dt.sum)){
+    m.s     <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = dt.sum$theta_star[i])  # QR model
+    TraQuan <- exp(predict(m.s, newdata = dt.sum)) # prediction
+    dt.sum$QR.95[i] <- TraQuan[i]
+  }
+  qr.alpha <<- (C - E.L)/(sum(dt.sum$QR.95*dt.sum$Npolicies) - E.L) 
+  
+  #-----------------------------
+  # QR
+  # Risk class prediction (dt.sum) 
+  #-----------------------------
+  dt.sum$QR <- dt.sum$Pure + qr.alpha*(dt.sum$QR.95 - dt.sum$Pure) 
+  dt.sum$loading.QR <- dt.sum$QR - dt.sum$Pure                        
+  
+  
+  #-----------------------------
+  # QRII
+  # Risk class prediction (dt.sum) 
+  #-----------------------------
+  theta_solve <- function(theta){
+    m.s  <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = theta) 
+    flag <- exp(predict(m.s, newdata = dt.sum))*(1-dt.sum$pi.pred)
+    bias <- C - sum(flag*dt.sum$Npolicies)
+    return(bias)
+  }
+  upper_theta <- 0.99999
+  lower_theta <- 0.00000001
+  library(rootSolve)
+  m_solve <- uniroot(f       = theta_solve,
+                     lower   = lower_theta,
+                     upper   = upper_theta,
+                     maxiter = 50000,
+                     tol     = .Machine$double.eps^0.525) 
+  theta_Tra <- m_solve$root
+  m.s  <- rq(log(y) ~ x1 + x2 + x3, data = dt0, tau = theta_Tra) 
+  flag <- exp(predict(m.s, newdata = dt.sum))*(1-dt.sum$pi.pred)
+  dt.sum$QRII <- flag
+  
+  #-----------------------------
+  # QRCF
+  # solve alpha
+  #-----------------------------
+  m3.s <- iqr(log(y) ~ x1 + x2 + x3,
+              data      = dt0,
+              formula.p = ~ slp(p,3))
+  dt.sum$QRCF.95 <- 0
+  for(i in 1:nrow(dt.sum)){
+    flag <- predict(m3.s, type = "QF", p = dt.sum$theta_star[i], newdata = dt.sum)
+    dt.sum$QRCF.95[i] <- exp(flag$fit[i,1])
+  }
+  qrcf.alpha <<- (C - E.L)/(sum(dt.sum$QRCF.95*dt.sum$Npolicies) - E.L) 
+  
+  #-----------------------------
+  # QRCF
+  # dt.sum
+  #-----------------------------
+  dt.sum$QRCF <- dt.sum$Pure + qrcf.alpha*(dt.sum$QRCF.95 - dt.sum$Pure) 
+  dt.sum$loading.QRCF <- dt.sum$QRCF - dt.sum$Pure                        
+  
+
+  
+  #-----------------------------
+  # EQR
+  # solve alpha
+  #-----------------------------
+
+  
+  dt.sum$EQR.95 <- 0
+
+  m3.e <- expectreg.ls((y) ~ x1 + x2 + x3, data = dt, expectiles = 0.95)
+  flag <- predict(m3.e, newdata = dt.sum)
+  dt.sum$EQR.95 <- (flag$fit)
+  eqr.alpha <- (C - E.L)/(sum(dt.sum$EQR.95*dt.sum$Npolicies) - E.L) 
+  
+  
+  
+  #-----------------------------
+  # EQR
+  # dt.sum
+  #-----------------------------
+  dt.sum$EQR <- dt.sum$Pure + eqr.alpha*(dt.sum$EQR.95 - dt.sum$Pure)
+  dt.sum$loading.EQR <- dt.sum$EQR - dt.sum$Pure
+  
+  # #-----------------------------
+  # # MSE
+  # #-----------------------------
+
+  z0.mat <- cbind(dt.sum$QR, 
+                 dt.sum$QRCF , 
+                 dt.sum$QRII , 
+                 dt.sum$EQR)
+  
+  mse0.mat <- cbind(dt.sum$QR - dt.sum$riskP, 
+                    dt.sum$QRCF  - dt.sum$riskP, 
+                    dt.sum$QRII  - dt.sum$riskP, 
+                    dt.sum$EQR - dt.sum$riskP)^2
+  
+  bias0.mat <- cbind(dt.sum$QR - dt.sum$riskP, 
+                     dt.sum$QRCF  - dt.sum$riskP, 
+                     dt.sum$QRII  - dt.sum$riskP, 
+                     dt.sum$EQR - dt.sum$riskP)
+  
+  z1.mat[k,] <- z0.mat[1,] # class 1
+  z2.mat[k,] <- z0.mat[2,] # class 2
+  z3.mat[k,] <- z0.mat[3,] # class 3
+  z4.mat[k,] <- z0.mat[4,] # class 4
+  z5.mat[k,] <- z0.mat[5,]
+  z6.mat[k,] <- z0.mat[6,]
+  z7.mat[k,] <- z0.mat[7,]
+  z8.mat[k,] <- z0.mat[8,]
+  
+  
+  
+  bias1.mat[k,] <- bias0.mat[1,] # class 1
+  bias2.mat[k,] <- bias0.mat[2,] # class 2
+  bias3.mat[k,] <- bias0.mat[3,] # class 3
+  bias4.mat[k,] <- bias0.mat[4,] # class 4
+  bias5.mat[k,] <- bias0.mat[5,]
+  bias6.mat[k,] <- bias0.mat[6,]
+  bias7.mat[k,] <- bias0.mat[7,]
+  bias8.mat[k,] <- bias0.mat[8,]
+  
+  
+  mse1.mat[k,] <- mse0.mat[1,]
+  mse2.mat[k,] <- mse0.mat[2,]
+  mse3.mat[k,] <- mse0.mat[3,]
+  mse4.mat[k,] <- mse0.mat[4,]
+  mse5.mat[k,] <- mse0.mat[5,]
+  mse6.mat[k,] <- mse0.mat[6,]
+  mse7.mat[k,] <- mse0.mat[7,]
+  mse8.mat[k,] <- mse0.mat[8,]
+  
+}
+  
+  mse1[j,] <- apply(mse1.mat, 2, mean)
+  mse2[j,] <- apply(mse2.mat, 2, mean)
+  mse3[j,] <- apply(mse3.mat, 2, mean)
+  mse4[j,] <- apply(mse4.mat, 2, mean)
+  mse5[j,] <- apply(mse5.mat, 2, mean)
+  mse6[j,] <- apply(mse6.mat, 2, mean)
+  mse7[j,] <- apply(mse7.mat, 2, mean)
+  mse8[j,] <- apply(mse8.mat, 2, mean)
+  
+  
+  bias1[j,] <- apply(bias1.mat, 2, mean)
+  bias2[j,] <- apply(bias2.mat, 2, mean)
+  bias3[j,] <- apply(bias3.mat, 2, mean)
+  bias4[j,] <- apply(bias4.mat, 2, mean)
+  bias5[j,] <- apply(bias5.mat, 2, mean)
+  bias6[j,] <- apply(bias6.mat, 2, mean)
+  bias7[j,] <- apply(bias7.mat, 2, mean)
+  bias8[j,] <- apply(bias8.mat, 2, mean)
+  
+  var1[j,] <- apply(z1.mat, 2, sd)^2/Nsim
+  var2[j,] <- apply(z2.mat, 2, mean)^2/Nsim
+  var3[j,] <- apply(z3.mat, 2, mean)^2/Nsim
+  var4[j,] <- apply(z4.mat, 2, mean)^2/Nsim
+  var5[j,] <- apply(z5.mat, 2, mean)^2/Nsim
+  var6[j,] <- apply(z6.mat, 2, mean)^2/Nsim
+  var7[j,] <- apply(z7.mat, 2, mean)^2/Nsim
+  var8[j,] <- apply(z8.mat, 2, mean)^2/Nsim
+  
+  
+  mse1.list[[j]] <- mse1.mat
+  mse2.list[[j]] <- mse2.mat
+  mse3.list[[j]] <- mse3.mat
+  mse4.list[[j]] <- mse4.mat
+  mse5.list[[j]] <- mse5.mat
+  mse6.list[[j]] <- mse6.mat
+  mse7.list[[j]] <- mse7.mat
+  mse8.list[[j]] <- mse8.mat
+  
+  bias1.list[[j]] <- bias1.mat
+  bias2.list[[j]] <- bias2.mat
+  bias3.list[[j]] <- bias3.mat
+  bias4.list[[j]] <- bias4.mat
+  bias5.list[[j]] <- bias5.mat
+  bias6.list[[j]] <- bias6.mat
+  bias7.list[[j]] <- bias7.mat
+  bias8.list[[j]] <- bias8.mat
+  
+
+}
+
+```
+
+```{r message=FALSE, warning=FALSE}
+load("D:/对外经济贸易大学 - 科研/0. Risk Loadings of Classification Ratemaking（in progress)/2021-final-code/mse_riskclass.RData")
+mse.caseI <- rbind(mse1[1,], mse2[1,], mse3[1,], mse4[1,], mse5[1,], mse6[1,], mse7[1,], mse8[1,])
+mse.caseII <- rbind(mse1[2,], mse2[2,], mse3[2,], mse4[2,], mse5[2,], mse6[2,], mse7[2,], mse8[2,])
+mse.caseIII <- rbind(mse1[3,], mse2[3,], mse3[3,], mse4[3,], mse5[3,], mse6[3,], mse7[3,], mse8[3,])
+colnames(mse.caseI) <- c('QR', 'QRCF', "QRII" ,'EQR')
+colnames(mse.caseII) <- c('QR', 'QRCF', "QRII" ,'EQR')
+colnames(mse.caseIII) <- c('QR', 'QRCF', "QRII" ,'EQR')
+row.names(mse.caseI) <- riskclass
+row.names(mse.caseII) <- riskclass
+row.names(mse.caseIII) <- riskclass
+mse.all <- rbind(mse.caseI, mse.caseII, mse.caseIII)
+# mse
+kable(mse.all, digits = 2)
+
+```
+
+
+## Section 5: Case study: Australian automobile insurance
 ### read data set from the local disk
-```{r message=TRUE, warning=FALSE}
-  dt            <- fread('car.csv')
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+  dt            <- fread('C:/Users/Administrator/Desktop/expectile-regression-risk-loading/car.csv')
   dt$claimcst00 <- dt$claimcst0/dt$exposure
   dt$count   <- 1
   dt$veh_age <- factor(dt$veh_age, levels = c(2, 1, 3, 4))
@@ -82,13 +622,13 @@ output:
 
 ### total risk premium for the whole insurance portfolio
 
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 C <- 22206147 # total risk premium that the insurer should charge
 ```
 
 
 ### Two-part GLMs: Logistic + gamma (EVPP + SDPP)
-```{r message=TRUE, warning=FALSE}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 
  # 0-1 claim or not part
   m_clm     <- glm(clm ~ veh_age + agecat, family=binomial(link=logitexp(exposure=dt$exposure)), data=dt)
@@ -142,14 +682,14 @@ C <- 22206147 # total risk premium that the insurer should charge
 
 ### QRII
 
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
   theta_Tra <- 0.7908
   m.QRII  <- rq(log(claimcst0) ~ veh_age + agecat, data = dt0, tau = theta_Tra) 
   dt.sum$QRII <- exp(predict(m.QRII, newdata = dt.sum))*(1-dt.sum$pi.pred)
 ```
 
 ### QR
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
  # solve the risk loading parameter
   theta <- 0.95  # quantile level for aggregate claim amount
   dt.sum$theta_star <- (theta - dt.sum$pi.pred)/(1 - dt.sum$pi.pred) # quantile level for non-zero aggregate claim amount
@@ -170,7 +710,7 @@ C <- 22206147 # total risk premium that the insurer should charge
 
 
 ### PQR
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
  # solve the risk loading parameter in QPP
   m3.s <- iqr(log(claimcst0) ~ veh_age + agecat,
                 data      = dt0,
@@ -194,7 +734,7 @@ C <- 22206147 # total risk premium that the insurer should charge
 
 
 ### ER
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
   # solve the risk loading parameter
   library(expectreg) # expectreg.ls
   library(dummies) # generate the dummies
@@ -227,7 +767,7 @@ C <- 22206147 # total risk premium that the insurer should charge
 
 ### Risk premium comparsion
 
-```{r message=TRUE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 dt.out <- dt.sum[,c('veh_age','agecat',"pi.pred",
            'Pure', 'EVPP', 'SDPP',
